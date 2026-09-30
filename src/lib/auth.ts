@@ -7,6 +7,7 @@ import bcrypt from "bcryptjs";
 import { db } from "@/db";
 import { companies, users, type User } from "@/db/schema";
 import { SESSION_COOKIE, SESSION_MAX_AGE, signSession, verifySession } from "./session";
+import { env } from "@/env";
 
 export async function hashPassword(password: string) {
   return bcrypt.hash(password, 10);
@@ -22,11 +23,12 @@ export async function createSession(user: Pick<User, "id" | "role">) {
   jar.set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: env.NODE_ENV === "production",
     path: "/",
     maxAge: SESSION_MAX_AGE,
   });
 }
+
 
 export async function destroySession() {
   const jar = await cookies();

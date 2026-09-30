@@ -4,6 +4,7 @@ import "@fontsource-variable/plus-jakarta-sans";
 import "@fontsource/caveat/600.css";
 import "./globals.css";
 import { Toaster } from "sonner";
+import { env } from "@/env";
 
 export const metadata: Metadata = {
   title: {
@@ -12,8 +13,9 @@ export const metadata: Metadata = {
   },
   description:
     "Internships, SIWES placements and real-world opportunities built for students and young professionals in Nigeria.",
-  metadataBase: new URL(process.env.APP_URL ?? "http://localhost:3000"),
+  metadataBase: new URL(env.APP_URL),
 };
+
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (

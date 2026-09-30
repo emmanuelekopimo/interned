@@ -2,6 +2,7 @@ import { relations, sql } from "drizzle-orm";
 import {
   boolean,
   date,
+  customType,
   index,
   integer,
   jsonb,
@@ -13,6 +14,25 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+
+export const bytea = customType<{ data: Buffer; driverData: string | Buffer }>({
+  dataType() {
+    return "bytea";
+  },
+  toDriver(val: Buffer): string {
+    return "\\x" + val.toString("hex");
+  },
+  fromDriver(val: unknown): Buffer {
+    if (Buffer.isBuffer(val)) return val;
+    if (typeof val === "string") {
+      return val.startsWith("\\x") ? Buffer.from(val.slice(2), "hex") : Buffer.from(val, "hex");
+    }
+    if (val instanceof Uint8Array) {
+      return Buffer.from(val);
+    }
+    return Buffer.from(String(val));
+  },
+});
 
 export const userRole = pgEnum("user_role", ["student", "company", "admin"]);
 export const userStatus = pgEnum("user_status", ["active", "suspended"]);
@@ -362,6 +382,15 @@ export const passwordResets = pgTable("password_resets", {
   usedAt: timestamp("used_at", { withTimezone: true }),
 });
 
+export const files = pgTable("files", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  mimeType: text("mime_type").notNull(),
+  size: integer("size").notNull(),
+  data: bytea("data").notNull(),
+  ...timestamps,
+});
+
 /* ---------------- relations ---------------- */
 
 export const usersRelations = relations(users, ({ one, many }) => ({
@@ -437,3 +466,4 @@ export type OpportunityStatus = (typeof opportunityStatus.enumValues)[number];
 export type OpportunityType = (typeof opportunityType.enumValues)[number];
 export type WorkMode = (typeof workMode.enumValues)[number];
 export type Eligibility = (typeof eligibility.enumValues)[number];
+export type FileRecord = typeof files.$inferSelect;

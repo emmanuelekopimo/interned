@@ -1,9 +1,10 @@
 import "server-only";
-import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import crypto from "node:crypto";
+import { env } from "@/env";
+import { db } from "@/db";
+import { files } from "@/db/schema";
 
-export const UPLOAD_DIR = path.resolve(/*turbopackIgnore: true*/ process.env.UPLOAD_DIR ?? "./uploads");
+export const UPLOAD_DIR = path.resolve(/*turbopackIgnore: true*/ env.UPLOAD_DIR);
 
 export const UPLOAD_KINDS = {
   document: {
@@ -30,8 +31,8 @@ export type UploadKind = keyof typeof UPLOAD_KINDS;
 
 export class UploadError extends Error {}
 
-/** Persist an uploaded File and return its public URL. Returns null when no file was provided. */
-export async function saveUpload(file: FormDataEntryValue | null, kind: UploadKind): Promise<{ url: string; name: string } | null> {
+/** Persist an uploaded File as a blob in the database and return its public URL. Returns null when no file was provided. */
+export async function saveUpload(file: FormDataEntryValue | null, kind: UploadKind): Promise<{ url: string; name: string; id: string } | null> {
   if (!file || typeof file === "string" || file.size === 0) return null;
   const rules = UPLOAD_KINDS[kind];
   const ext = rules.types[file.type];
@@ -43,9 +44,24 @@ export async function saveUpload(file: FormDataEntryValue | null, kind: UploadKi
   if (file.size > rules.maxBytes) {
     throw new UploadError(`File is too large. Maximum size is ${Math.round(rules.maxBytes / 1024 / 1024)}MB.`);
   }
-  const dir = path.join(/*turbopackIgnore: true*/ UPLOAD_DIR, kind);
-  await mkdir(dir, { recursive: true });
-  const filename = `${Date.now()}-${crypto.randomBytes(8).toString("hex")}.${ext}`;
-  await writeFile(path.join(dir, filename), Buffer.from(await file.arrayBuffer()));
-  return { url: `/api/files/${kind}/${filename}`, name: file.name.slice(0, 120) };
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const sanitizedName = file.name.slice(0, 120);
+
+  const [record] = await db
+    .insert(files)
+    .values({
+      name: sanitizedName,
+      mimeType: file.type || (kind === "document" ? "application/pdf" : "image/png"),
+      size: file.size,
+      data: buffer,
+    })
+    .returning({ id: files.id });
+
+  return {
+    url: `/api/files/${record.id}/${encodeURIComponent(sanitizedName)}`,
+    name: sanitizedName,
+    id: record.id,
+  };
 }
+

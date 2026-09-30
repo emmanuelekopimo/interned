@@ -1,4 +1,5 @@
 import { SignJWT, jwtVerify } from "jose";
+import { env } from "@/env";
 
 export const SESSION_COOKIE = "internly_session";
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
@@ -9,12 +10,9 @@ export type SessionPayload = {
 };
 
 function key() {
-  const secret = process.env.AUTH_SECRET;
-  if (!secret || secret.length < 16) {
-    throw new Error("AUTH_SECRET must be set to a random string of at least 16 characters");
-  }
-  return new TextEncoder().encode(secret);
+  return new TextEncoder().encode(env.AUTH_SECRET);
 }
+
 
 export async function signSession(payload: SessionPayload) {
   return new SignJWT({ role: payload.role })

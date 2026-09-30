@@ -70,7 +70,7 @@ Demo accounts created by the seed script:
 
 See `.env.example`. Notable settings:
 
-- **Uploads** (CVs, logos, images) are stored on disk in `UPLOAD_DIR` and served from `/api/files/...`. Use a persistent volume in production.
+- **Uploads** (CVs, logos, images) are stored as binary blobs in PostgreSQL (`files` table) and served from `/api/files/...` (with fallback to local disk for legacy files).
 - **Email**: set `SMTP_*` to send real email; otherwise emails are printed to the server log.
 - **Alert digests**: call `GET /api/cron/alerts` with `Authorization: Bearer $CRON_SECRET` on a schedule (e.g. hourly). Instant alerts are sent when an opportunity is first published.
 

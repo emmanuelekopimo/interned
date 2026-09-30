@@ -1,23 +1,25 @@
 import "server-only";
 import nodemailer, { type Transporter } from "nodemailer";
+import { env } from "@/env";
 
 let transporter: Transporter | null = null;
 
 function getTransporter() {
-  if (!process.env.SMTP_HOST) return null;
+  if (!env.SMTP_HOST) return null;
   transporter ??= nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT ?? 587),
-    secure: Number(process.env.SMTP_PORT) === 465,
-    auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined,
+    host: env.SMTP_HOST,
+    port: env.SMTP_PORT,
+    secure: env.SMTP_PORT === 465,
+    auth: env.SMTP_USER && env.SMTP_PASS ? { user: env.SMTP_USER, pass: env.SMTP_PASS } : undefined,
   });
   return transporter;
 }
 
 export function appUrl(path = "") {
-  const base = (process.env.APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const base = env.APP_URL.replace(/\/$/, "");
   return `${base}${path}`;
 }
+
 
 function escapeHtml(s: string) {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -46,14 +48,16 @@ export async function sendMail(opts: { to: string; subject: string; text: string
     return;
   }
   try {
+    const from = env.MAIL_FROM || (env.SMTP_USER ? `Internly <${env.SMTP_USER}>` : "Internly <no-reply@internly.ng>");
     await t.sendMail({
-      from: process.env.MAIL_FROM ?? "Internly <no-reply@internly.ng>",
+      from,
       to: opts.to,
       subject: opts.subject,
       text: opts.cta ? `${opts.text}\n\n${opts.cta.label}: ${opts.cta.url}` : opts.text,
       html,
     });
   } catch (err) {
+
     console.error("[mail] failed to send", err);
   }
 }

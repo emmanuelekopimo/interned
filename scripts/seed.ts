@@ -5,7 +5,9 @@
 import "dotenv/config";
 import { sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import { env } from "../src/env";
 import { db } from "../src/db";
+
 import {
   applicationEvents,
   applications,
@@ -349,8 +351,9 @@ async function main() {
       contact_messages, pages, settings restart identity cascade`);
   }
 
-  const adminEmail = (process.env.SEED_ADMIN_EMAIL ?? "admin@internly.ng").toLowerCase();
-  const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? "Admin@12345";
+  const adminEmail = env.SEED_ADMIN_EMAIL.toLowerCase();
+  const adminPassword = env.SEED_ADMIN_PASSWORD;
+
   const hash = (p: string) => bcrypt.hash(p, 10);
 
   await db
